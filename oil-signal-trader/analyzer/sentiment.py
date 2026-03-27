@@ -6,50 +6,68 @@ client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
 def analyze_tweet(tweet_data: dict) -> dict:
-    """
-    Analyse l'impact géopolitique d'un tweet sur le prix du Brent.
-    Prompt conservateur — 90%+ uniquement pour événements majeurs confirmés.
-    """
-    prompt = f"""Tu es un trader senior en matières premières, spécialisé Brent crude oil.
-Ton rôle est d'identifier UNIQUEMENT les événements majeurs qui vont faire bouger le Brent de +2% minimum.
+    prompt = f"""Tu es un trader senior spécialisé Brent crude oil avec 20 ans d'expérience en géopolitique pétrolière.
+Ton seul objectif : détecter les événements qui font bouger le Brent de +2% minimum avec certitude élevée.
 
 Compte    : @{tweet_data['username']}
 Tweet     : "{tweet_data['text']}"
 Publié le : {tweet_data['created_at']}
 Likes     : {tweet_data.get('likes', 0)} | Retweets : {tweet_data.get('retweets', 0)}
 
-RÈGLES STRICTES pour la confiance :
-- 90-100% : Événement MAJEUR CONFIRMÉ (sanctions officielles, guerre déclarée, coupe OPEC annoncée, blocage Hormuz)
-- 70-89%  : Événement significatif mais non confirmé (menace crédible, négociations rompues)
-- 50-69%  : Signal faible ou ambigu
-- 0-49%   : Pas d'impact direct sur le Brent
+=== SCÉNARIOS SELL — BAISSE BRENT ===
 
-NE PAS donner >70% pour :
-- Tweets généraux sur la politique sans mention pétrole/énergie/Iran
-- Rumeurs sans source officielle
-- Commentaires économiques généraux
-- Répétition d'une news déjà connue
+CONFIANCE 100% (urgence maximale) :
+- Détroit d'Hormuz réouvert officiellement par l'Iran
+- Iran annonce arrêt officiel des attaques de tankers
+- Cessez-le-feu signé Iran/USA ou Iran/Israël confirmé
+- Accord nucléaire Iran signé → levée sanctions imminente
 
-Signaux BUY (hausse Brent) :
-- Sanctions Iran/Venezuela officielles ou durcissement
-- Conflit militaire Moyen-Orient affectant production/transport
+CONFIANCE 85-95% :
+- Négociations de paix Iran avancées, accord proche
+- Retrait de forces militaires US du Golfe Persique
+- Augmentation confirmée réserves stratégiques Brent (SPR release US/IEA)
+- Production OPEC+ augmentée officiellement
+- Baisse significative demande pétrole (recession confirmée)
+
+=== SCÉNARIOS BUY — HAUSSE BRENT ===
+
+CONFIANCE 100% (urgence maximale) :
+- Attaque confirmée sur tanker dans le Détroit d'Hormuz ou Mer Rouge
+- Destruction infrastructure pétrolière critique en Iran (raffinerie, terminal)
+- Blocage Détroit d'Hormuz confirmé
+- Frappe US ou Israël sur installations nucléaires/pétrolières iraniennes
+- Déclaration de guerre formelle impliquant Iran
+
+CONFIANCE 85-95% :
+- Escalade militaire significative USA+Israël vs Iran (nouveaux bombardements)
+- Nouvelles sanctions US/EU sur pétrole iranien officialisées
+- Menace crédible de fermeture Détroit d'Hormuz par l'Iran
 - Réduction production OPEC+ annoncée officiellement
-- Blocage Détroit Hormuz
+- Attaque Houthis sur infrastructure pétrolière majeure
+- Destruction pipeline stratégique
 
-Signaux SELL (baisse Brent) :
-- Accord nucléaire Iran signé → retour production
-- Augmentation production OPEC+
-- Libération réserves stratégiques US massive
-- Cessez-le-feu confirmé zone pétrolière
+CONFIANCE 50-84% :
+- Tension accrue sans événement confirmé
+- Rumeurs non confirmées d'attaque
+- Déclarations menaçantes sans action
+
+CONFIANCE 0-49% → NEUTRAL obligatoire :
+- Politique générale sans lien pétrole direct
+- Répétition d'une news déjà connue et pricée
+- Commentaires économiques vagues
+
+RÈGLE ABSOLUE : Ne jamais donner 90%+ sans événement CONFIRMÉ et NOUVEAU.
 
 Réponds UNIQUEMENT avec ce JSON :
 {{
   "signal": "BUY" | "SELL" | "NEUTRAL",
   "confidence": <entier 0-100>,
+  "urgency": "CRITIQUE" | "HAUTE" | "NORMALE" | "FAIBLE",
+  "scenario": "<nom du scénario déclenché, ex: Attaque tanker Hormuz>",
   "impact_timeframe": "immédiat" | "court_terme" | "moyen_terme",
   "summary": "<résumé exécutif 2-3 phrases>",
   "reasoning": "<raisonnement détaillé>",
-  "price_impact_estimate": "<ex: +2% à +4%>",
+  "price_impact_estimate": "<ex: +3% à +6%>",
   "key_factors": ["facteur1", "facteur2"]
 }}"""
 

@@ -1,24 +1,40 @@
 import os
 import tweepy
 
-# Comptes ciblés — uniquement ceux à fort impact direct sur le Brent
 TRACKED_USERNAMES = [
-    "realDonaldTrump",   # Trump — sanctions Iran, politique énergie US
+    "realDonaldTrump",   # Trump — sanctions, politique énergie, Iran
     "IrnaEnglish",      # Agence presse officielle iranienne
     "OPECSecretariat",  # OPEC — décisions production
+    "USNavy",           # US Navy — incidents Détroit Hormuz, tankers
+    "CENTCOM",          # US Central Command — opérations militaires Moyen-Orient
+    "IsraeliPM",        # Premier ministre israélien
+    "Reuters",          # Breaking news géopolitique
 ]
 
-# Mots-clés : un tweet doit contenir au moins un de ces mots pour être analysé
+# Mots-clés primaires — lien direct Brent
 OIL_KEYWORDS = [
-    "oil", "petroleum", "brent", "opec", "barrel", "crude",
-    "sanctions", "iran", "energy", "supply", "pipeline",
-    "refinery", "production cut", "embargo", "nuclear deal",
-    "strait of hormuz", "middle east", "saudi", "venezuela"
+    # Pétrole
+    "oil", "petroleum", "brent", "crude", "barrel", "opec",
+    "refinery", "pipeline", "tanker", "supertanker",
+    # Détroit d'Hormuz
+    "hormuz", "strait", "persian gulf", "gulf of oman",
+    # Géopolitique pétrolière
+    "sanctions", "embargo", "iran", "nuclear deal",
+    "houthi", "red sea", "bab el-mandeb",
+    "saudi aramco", "saudi arabia", "aramco",
+    # Infrastructure
+    "energy infrastructure", "oil field", "oil terminal",
+    "production cut", "supply disruption",
+    # Réserves
+    "strategic reserve", "spr", "iea", "inventory",
+    # Conflit
+    "attack", "strike", "seized", "missile", "drone strike",
+    "ceasefire", "peace deal", "nuclear agreement",
 ]
 
 
 def is_oil_relevant(text: str) -> bool:
-    """Filtre rapide — n'appelle Claude que si le tweet parle vraiment de pétrole."""
+    """Filtre — n'analyse que les tweets liés au pétrole ou géopolitique énergétique."""
     text_lower = text.lower()
     return any(kw in text_lower for kw in OIL_KEYWORDS)
 
@@ -48,7 +64,7 @@ class TwitterMonitor:
                 print(f"[WARN] Impossible de résoudre @{username} : {e}")
 
     def initialize_last_ids(self):
-        """Mémorise les tweets actuels sans les traiter — évite le rattrapage."""
+        """Mémorise les tweets actuels sans les traiter."""
         for username, user_id in self.user_ids.items():
             try:
                 resp = self.client.get_users_tweets(
@@ -80,7 +96,7 @@ class TwitterMonitor:
                 if resp.data:
                     for tweet in resp.data:
                         if not is_oil_relevant(tweet.text):
-                            print(f"@{username} — tweet ignoré (hors sujet pétrole)")
+                            print(f"@{username} — ignoré (hors sujet)")
                             continue
                         new_tweets.append({
                             "username": username,
