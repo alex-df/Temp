@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.Python
+venv/
+.venv/
+env/
+pip-log.txt
+.pytest_cache/
+mt4/signal.txt
+*.log
+.DS_Store
