@@ -1,14 +1,26 @@
 import os
 import tweepy
 
-# Comptes à surveiller : username -> user_id (résolu au démarrage)
+# Comptes ciblés — uniquement ceux à fort impact direct sur le Brent
 TRACKED_USERNAMES = [
-    "realDonaldTrump",   # Trump — sanctions Iran, politique énergie
-    "POTUS",            # Compte officiel présidence US
+    "realDonaldTrump",   # Trump — sanctions Iran, politique énergie US
     "IrnaEnglish",      # Agence presse officielle iranienne
     "OPECSecretariat",  # OPEC — décisions production
-    "EnergyIntel",      # Intelligence énergie
 ]
+
+# Mots-clés : un tweet doit contenir au moins un de ces mots pour être analysé
+OIL_KEYWORDS = [
+    "oil", "petroleum", "brent", "opec", "barrel", "crude",
+    "sanctions", "iran", "energy", "supply", "pipeline",
+    "refinery", "production cut", "embargo", "nuclear deal",
+    "strait of hormuz", "middle east", "saudi", "venezuela"
+]
+
+
+def is_oil_relevant(text: str) -> bool:
+    """Filtre rapide — n'appelle Claude que si le tweet parle vraiment de pétrole."""
+    text_lower = text.lower()
+    return any(kw in text_lower for kw in OIL_KEYWORDS)
 
 
 class TwitterMonitor:
@@ -21,12 +33,11 @@ class TwitterMonitor:
             access_token_secret=os.getenv("X_ACCESS_TOKEN_SECRET"),
             wait_on_rate_limit=True,
         )
-        self.user_ids = {}         # {username: user_id}
-        self.last_tweet_ids = {}   # {user_id: last_tweet_id} — déduplication
+        self.user_ids = {}
+        self.last_tweet_ids = {}
         self._resolve_user_ids()
 
     def _resolve_user_ids(self):
-        """Convertit les usernames en user IDs au démarrage."""
         for username in TRACKED_USERNAMES:
             try:
                 resp = self.client.get_user(username=username)
@@ -37,7 +48,7 @@ class TwitterMonitor:
                 print(f"[WARN] Impossible de résoudre @{username} : {e}")
 
     def initialize_last_ids(self):
-        """Mémorise les tweets actuels sans les traiter — évite le rattrapage au démarrage."""
+        """Mémorise les tweets actuels sans les traiter — évite le rattrapage."""
         for username, user_id in self.user_ids.items():
             try:
                 resp = self.client.get_users_tweets(
@@ -52,13 +63,12 @@ class TwitterMonitor:
                 print(f"[WARN] Init @{username} : {e}")
 
     def check_new_tweets(self):
-        """Vérifie les nouveaux tweets de tous les comptes surveillés."""
+        """Vérifie les nouveaux tweets et filtre par mots-clés pétrole."""
         new_tweets = []
 
         for username, user_id in self.user_ids.items():
             try:
                 since_id = self.last_tweet_ids.get(user_id)
-
                 resp = self.client.get_users_tweets(
                     id=user_id,
                     since_id=since_id,
@@ -69,6 +79,9 @@ class TwitterMonitor:
 
                 if resp.data:
                     for tweet in resp.data:
+                        if not is_oil_relevant(tweet.text):
+                            print(f"@{username} — tweet ignoré (hors sujet pétrole)")
+                            continue
                         new_tweets.append({
                             "username": username,
                             "tweet_id": str(tweet.id),
@@ -77,7 +90,6 @@ class TwitterMonitor:
                             "likes": tweet.public_metrics.get("like_count", 0),
                             "retweets": tweet.public_metrics.get("retweet_count", 0),
                         })
-                    # Mémoriser le dernier tweet ID pour la prochaine vérification
                     self.last_tweet_ids[user_id] = resp.data[0].id
 
             except Exception as e:

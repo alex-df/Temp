@@ -8,32 +8,48 @@ client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 def analyze_tweet(tweet_data: dict) -> dict:
     """
     Analyse l'impact géopolitique d'un tweet sur le prix du Brent.
-    Retourne un dict avec signal, confiance, résumé et raisonnement.
+    Prompt conservateur — 90%+ uniquement pour événements majeurs confirmés.
     """
-    prompt = f"""Tu es un trader expert en matières premières, spécialisé dans le pétrole brut Brent.
+    prompt = f"""Tu es un trader senior en matières premières, spécialisé Brent crude oil.
+Ton rôle est d'identifier UNIQUEMENT les événements majeurs qui vont faire bouger le Brent de +2% minimum.
 
-Analyse ce tweet et détermine son impact potentiel sur le prix du Brent.
+Compte    : @{tweet_data['username']}
+Tweet     : "{tweet_data['text']}"
+Publié le : {tweet_data['created_at']}
+Likes     : {tweet_data.get('likes', 0)} | Retweets : {tweet_data.get('retweets', 0)}
 
-Compte      : @{tweet_data['username']}
-Tweet       : "{tweet_data['text']}"
-Publié le   : {tweet_data['created_at']}
-Likes       : {tweet_data.get('likes', 0)}
-Retweets    : {tweet_data.get('retweets', 0)}
+RÈGLES STRICTES pour la confiance :
+- 90-100% : Événement MAJEUR CONFIRMÉ (sanctions officielles, guerre déclarée, coupe OPEC annoncée, blocage Hormuz)
+- 70-89%  : Événement significatif mais non confirmé (menace crédible, négociations rompues)
+- 50-69%  : Signal faible ou ambigu
+- 0-49%   : Pas d'impact direct sur le Brent
 
-Règles d'analyse :
-- Tensions géopolitiques / sanctions Iran / conflit Moyen-Orient → pression haussière → BUY
-- Accord de paix / augmentation production OPEC / libération réserves stratégiques → pression baissière → SELL
-- Déclarations économiques générales sans lien direct pétrole → NEUTRAL
-- Si le tweet est ambigu ou l'impact faible → confiance < 50
+NE PAS donner >70% pour :
+- Tweets généraux sur la politique sans mention pétrole/énergie/Iran
+- Rumeurs sans source officielle
+- Commentaires économiques généraux
+- Répétition d'une news déjà connue
 
-Réponds UNIQUEMENT avec ce JSON (aucun texte autour) :
+Signaux BUY (hausse Brent) :
+- Sanctions Iran/Venezuela officielles ou durcissement
+- Conflit militaire Moyen-Orient affectant production/transport
+- Réduction production OPEC+ annoncée officiellement
+- Blocage Détroit Hormuz
+
+Signaux SELL (baisse Brent) :
+- Accord nucléaire Iran signé → retour production
+- Augmentation production OPEC+
+- Libération réserves stratégiques US massive
+- Cessez-le-feu confirmé zone pétrolière
+
+Réponds UNIQUEMENT avec ce JSON :
 {{
   "signal": "BUY" | "SELL" | "NEUTRAL",
   "confidence": <entier 0-100>,
   "impact_timeframe": "immédiat" | "court_terme" | "moyen_terme",
   "summary": "<résumé exécutif 2-3 phrases>",
   "reasoning": "<raisonnement détaillé>",
-  "price_impact_estimate": "<ex: +1.5% à +3%>",
+  "price_impact_estimate": "<ex: +2% à +4%>",
   "key_factors": ["facteur1", "facteur2"]
 }}"""
 
@@ -44,8 +60,6 @@ Réponds UNIQUEMENT avec ce JSON (aucun texte autour) :
     )
 
     raw = response.content[0].text.strip()
-
-    # Nettoyage si Claude ajoute des backticks
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
