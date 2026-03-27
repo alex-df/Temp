@@ -11,10 +11,8 @@ from notifier.email_sender import send_alert
 monitor = TwitterMonitor()
 scheduler = BlockingScheduler()
 
-# Cooldown : mémorise le dernier envoi par compte (évite le spam)
-# Format : {username: datetime}
 last_alert_sent = {}
-COOLDOWN_HOURS = 4
+COOLDOWN_MINUTES = 10
 CONFIDENCE_THRESHOLD = 90
 
 
@@ -33,9 +31,9 @@ def check_and_alert():
         # Vérifier cooldown
         last_sent = last_alert_sent.get(username)
         if last_sent:
-            hours_since = (datetime.now(timezone.utc) - last_sent).total_seconds() / 3600
-            if hours_since < COOLDOWN_HOURS:
-                print(f"Cooldown actif @{username} — {COOLDOWN_HOURS - hours_since:.1f}h restantes")
+            minutes_since = (datetime.now(timezone.utc) - last_sent).total_seconds() / 60
+            if minutes_since < COOLDOWN_MINUTES:
+                print(f"Cooldown actif @{username} — {COOLDOWN_MINUTES - minutes_since:.1f} min restantes")
                 continue
 
         analysis = analyze_tweet(tweet)
@@ -63,7 +61,7 @@ if __name__ == "__main__":
     print("=" * 50)
     print("Oil Signal Trader — Démarrage")
     print(f"Comptes : {list(monitor.user_ids.keys())}")
-    print(f"Seuil   : {CONFIDENCE_THRESHOLD}% | Cooldown : {COOLDOWN_HOURS}h")
+    print(f"Seuil   : {CONFIDENCE_THRESHOLD}% | Cooldown : {COOLDOWN_MINUTES} min")
     print(f"Filtre  : mots-clés pétrole actif")
     print("=" * 50)
 
