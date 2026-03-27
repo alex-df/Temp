@@ -26,12 +26,12 @@ def check_and_alert():
         analysis = analyze_tweet(tweet)
         print(f"Signal: {analysis['signal']} ({analysis['confidence']}%)")
 
-        # Envoyer alerte si signal fort ou confiance élevée
-        if analysis["signal"] != "NEUTRAL" or analysis["confidence"] >= 70:
+        # Envoyer alerte uniquement si signal fort ET confiance >= 90%
+        if analysis["signal"] != "NEUTRAL" and analysis["confidence"] >= 90:
             send_alert(tweet, analysis)
             print(f"Alert sent to {os.getenv('ALERT_EMAIL')}")
         else:
-            print("Signal NEUTRAL faible — pas d'email envoyé.")
+            print(f"Signal {analysis['signal']} {analysis['confidence']}% — sous le seuil, pas d'email.")
 
 
 @scheduler.scheduled_job("interval", minutes=1)
@@ -46,11 +46,12 @@ if __name__ == "__main__":
     print("=" * 50)
     print("Oil Signal Trader — Démarrage")
     print(f"Comptes surveillés : {list(monitor.user_ids.keys())}")
-    print("Polling toutes les 60 secondes")
+    print("Polling toutes les 60 secondes | Seuil email : 90%")
     print("=" * 50)
 
-    # Premier check immédiat au démarrage
-    check_and_alert()
+    # Initialiser les derniers IDs sans traiter les tweets existants
+    monitor.initialize_last_ids()
+    print("Initialisation terminée — en attente de nouveaux tweets...")
 
-    # Puis toutes les minutes
+    # Scheduler uniquement, pas de check immédiat
     scheduler.start()

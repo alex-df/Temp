@@ -36,6 +36,21 @@ class TwitterMonitor:
             except Exception as e:
                 print(f"[WARN] Impossible de résoudre @{username} : {e}")
 
+    def initialize_last_ids(self):
+        """Mémorise les tweets actuels sans les traiter — évite le rattrapage au démarrage."""
+        for username, user_id in self.user_ids.items():
+            try:
+                resp = self.client.get_users_tweets(
+                    id=user_id,
+                    max_results=5,
+                    exclude=["retweets", "replies"],
+                )
+                if resp.data:
+                    self.last_tweet_ids[user_id] = resp.data[0].id
+                    print(f"Init @{username} — dernier tweet ID mémorisé")
+            except Exception as e:
+                print(f"[WARN] Init @{username} : {e}")
+
     def check_new_tweets(self):
         """Vérifie les nouveaux tweets de tous les comptes surveillés."""
         new_tweets = []
